@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FCFS Scheduling Animation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+            background-color: #2c3e50;
+            color: white;
+            border-radius: 8px;
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 2.2em;
+        }
+        
+        .subtitle {
+            font-style: italic;
+            opacity: 0.9;
+        }
+        
+        .animation-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .process-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-weight: bold;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .gantt-chart {
+            height: 100px;
+            background-color: #ecf0f1;
+            border-radius: 4px;
+            position: relative;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+        
+        .gantt-bar {
+            height: 60px;
+            position: absolute;
+            top: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            transition: width 0.3s, left 0.3s;
+        }
+        
+        .process-queue {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .process {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            position: relative;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.16);
+        }
+        
+        .process-arrival {
+            position: absolute;
+            top: -20px;
+            font-size: 0.8em;
+            color: #7f8c8d;
+        }
+        
+        .process-burst {
+            position: absolute;
+            bottom: -20px;
+            font-size: 0.8em;
+            color: #7f8c8d;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+        
+        .explanation {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-top: 30px;
+        }
+        
+        @keyframes processArrival {
+            0% { transform: translateY(-50px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        
+        .arriving {
+            animation: processArrival 0.5s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>FCFS Scheduling Algorithm</h1>
+            <p class="subtitle">First-Come First-Served CPU Scheduling Visualization</p>
+        </header>
+        
+        <div class="animation-container">
+            <div class="process-controls">
+                <div class="control-group">
+                    <button id="addProcess">Add Process</button>
+                    <button id="reset">Reset</button>
+                </div>
+                <div class="control-group">
+                    <button id="start">Start</button>
+                    <button id="pause" disabled>Pause</button>
+                    <button id="step" disabled>Step</button>
+                </div>
+                <div class="speed-control">
+                    <span>Speed:</span>
+                    <input type="range" id="speed" min="1" max="10" value="5">
+                </div>
+            </div>
+            
+            <h3>Ready Queue</h3>
+            <div class="process-queue" id="readyQueue"></div>
+            
+            <h3>Gantt Chart</h3>
+            <div class="gantt-chart" id="ganttChart"></div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="avgWaitTime">0</div>
+                    <div class="stat-label">Average Waiting Time</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="avgTurnaround">0</div>
+                    <div class="stat-label">Average Turnaround Time</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="throughput">0</div>
+                    <div class="stat-label">Throughput (processes/unit time)</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="explanation">
+            <a class="read-more" href="fcfs_r.html"><i class="fas fa-book"></i> Learn More</a>
+        </div>
+    </div>
+
+    <script>
+        // Process colors for visualization
+        const processColors = [
+            '#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', 
+            '#1abc9c', '#d35400', '#34495e', '#7f8c8d', '#c0392b'
+        ];
+        
+        // State variables
+        let processes = [];
+        let currentTime = 0;
+        let animationInterval;
+        let speed = 500;
+        let isRunning = false;
+        let completedProcesses = 0;
+        let totalWaitTime = 0;
+        let totalTurnaroundTime = 0;
+        
+        // DOM elements
+        const readyQueueEl = document.getElementById('readyQueue');
+        const ganttChartEl = document.getElementById('ganttChart');
+        const addProcessBtn = document.getElementById('addProcess');
+        const resetBtn = document.getElementById('reset');
+        const startBtn = document.getElementById('start');
+        const pauseBtn = document.getElementById('pause');
+        const stepBtn = document.getElementById('step');
+        const speedControl = document.getElementById('speed');
+        const avgWaitTimeEl = document.getElementById('avgWaitTime');
+        const avgTurnaroundEl = document.getElementById('avgTurnaround');
+        const throughputEl = document.getElementById('throughput');
+        
+        // Initialize
+        function init() {
+            resetSimulation();
+            setupEventListeners();
+        }
+        
+        // Set up event listeners
+        function setupEventListeners() {
+            addProcessBtn.addEventListener('click', addRandomProcess);
+            resetBtn.addEventListener('click', resetSimulation);
+            startBtn.addEventListener('click', startSimulation);
+            pauseBtn.addEventListener('click', pauseSimulation);
+            stepBtn.addEventListener('click', stepSimulation);
+            speedControl.addEventListener('input', updateSpeed);
+        }
+        
+        // Add a random process to the queue
+        function addRandomProcess() {
+            if (processes.length >= 10) {
+                alert('Maximum of 10 processes allowed');
+                return;
+            }
+            
+            const processId = processes.length + 1;
+            const burstTime = Math.floor(Math.random() * 8) + 2; // 2-9 units
+            const arrivalTime = currentTime;
+            
+            const process = {
+                id: processId,
+                burstTime: burstTime,
+                arrivalTime: arrivalTime,
+                remainingTime: burstTime,
+                startTime: null,
+                endTime: null,
+                color: processColors[(processId - 1) % processColors.length]
+            };
+            
+            processes.push(process);
+            renderReadyQueue();
+            
+            // Highlight new process
+            const newProcessEl = document.querySelector(`.process[data-id="${processId}"]`);
+            newProcessEl.classList.add('arriving');
+            setTimeout(() => newProcessEl.classList.remove('arriving'), 500);
+        }
+        
+        // Render the ready queue
+        function renderReadyQueue() {
+            readyQueueEl.innerHTML = '';
+            
+            processes.forEach(process => {
+                const processEl = document.createElement('div');
+                processEl.className = 'process';
+                processEl.style.backgroundColor = process.color;
+                processEl.setAttribute('data-id', process.id);
+                processEl.innerHTML = `P${process.id}`;
+                
+                const arrivalEl = document.createElement('div');
+                arrivalEl.className = 'process-arrival';
+                arrivalEl.textContent = `Arrival: ${process.arrivalTime}`;
+                
+                const burstEl = document.createElement('div');
+                burstEl.className = 'process-burst';
+                burstEl.textContent = `Burst: ${process.burstTime}`;
+                
+                processEl.appendChild(arrivalEl);
+                processEl.appendChild(burstEl);
+                readyQueueEl.appendChild(processEl);
+            });
+        }
+        
+        // Start the simulation
+        function startSimulation() {
+            if (isRunning || processes.length === 0) return;
+            
+            isRunning = true;
+            startBtn.disabled = true;
+            pauseBtn.disabled = false;
+            stepBtn.disabled = true;
+            addProcessBtn.disabled = true;
+            
+            animationInterval = setInterval(stepSimulation, speed);
+        }
+        
+        // Pause the simulation
+        function pauseSimulation() {
+            if (!isRunning) return;
+            
+            isRunning = false;
+            clearInterval(animationInterval);
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            stepBtn.disabled = false;
+            addProcessBtn.disabled = false;
+        }
+        
+        // Execute one step of the simulation
+        function stepSimulation() {
+            if (processes.length === 0) {
+                pauseSimulation();
+                return;
+            }
+            
+            // Get first process in queue
+            const currentProcess = processes[0];
+            
+            // If process hasn't started yet, record start time
+            if (currentProcess.startTime === null) {
+                currentProcess.startTime = currentTime;
+                totalWaitTime += currentTime - currentProcess.arrivalTime;
+            }
+            
+            // Execute one time unit
+            currentProcess.remainingTime--;
+            currentTime++;
+            
+            // Update Gantt chart
+            updateGanttChart(currentProcess);
+            
+            // If process completed
+            if (currentProcess.remainingTime === 0) {
+                currentProcess.endTime = currentTime;
+                totalTurnaroundTime += currentTime - currentProcess.arrivalTime;
+                completedProcesses++;
+                processes.shift(); // Remove from queue
+                renderReadyQueue();
+            }
+            
+            // Update statistics
+            updateStats();
+            
+            // If all processes completed
+            if (processes.length === 0) {
+                pauseSimulation();
+            }
+        }
+        
+        // Update Gantt chart
+        function updateGanttChart(process) {
+            // Find existing bar for this process
+            let bar = document.querySelector(`.gantt-bar[data-id="${process.id}"]`);
+            
+            if (!bar) {
+                // Create new bar
+                bar = document.createElement('div');
+                bar.className = 'gantt-bar';
+                bar.style.backgroundColor = process.color;
+                bar.setAttribute('data-id', process.id);
+                bar.textContent = `P${process.id}`;
+                bar.style.left = `${currentTime * 40}px`;
+                bar.style.width = '40px';
+                ganttChartEl.appendChild(bar);
+            } else {
+                // Extend existing bar
+                bar.style.width = `${(currentTime - parseInt(bar.style.left) / 40 + 1) * 40}px`;
+            }
+        }
+        
+        // Update statistics display
+        function updateStats() {
+            const avgWait = completedProcesses > 0 ? 
+                (totalWaitTime / completedProcesses).toFixed(2) : 0;
+            const avgTurnaround = completedProcesses > 0 ? 
+                (totalTurnaroundTime / completedProcesses).toFixed(2) : 0;
+            const throughputVal = currentTime > 0 ? 
+                (completedProcesses / currentTime).toFixed(2) : 0;
+            
+            avgWaitTimeEl.textContent = avgWait;
+            avgTurnaroundEl.textContent = avgTurnaround;
+            throughputEl.textContent = throughputVal;
+        }
+        
+        // Update animation speed
+        function updateSpeed() {
+            speed = 1100 - (speedControl.value * 100);
+            
+            if (isRunning) {
+                clearInterval(animationInterval);
+                animationInterval = setInterval(stepSimulation, speed);
+            }
+        }
+        
+        // Reset the simulation
+        function resetSimulation() {
+            pauseSimulation();
+            
+            processes = [];
+            currentTime = 0;
+            completedProcesses = 0;
+            totalWaitTime = 0;
+            totalTurnaroundTime = 0;
+            
+            readyQueueEl.innerHTML = '';
+            ganttChartEl.innerHTML = '';
+            
+            avgWaitTimeEl.textContent = '0';
+            avgTurnaroundEl.textContent = '0';
+            throughputEl.textContent = '0';
+            
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            stepBtn.disabled = false;
+            addProcessBtn.disabled = false;
+        }
+        
+        // Initialize the page
+        init();
+    </script>
+</body>
+</html>
